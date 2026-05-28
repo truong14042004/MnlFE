@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid, XAxis, YAxis, Legend,
 } from 'recharts';
-import { fetchSummary, formatMinutes, Summary, getCurrentUserId } from '../lib/api';
+import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
 
 const SITES = ['YouTube', 'Facebook', 'TikTok'] as const;
 const SITE_COLORS: Record<string, string> = {
@@ -24,14 +25,23 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export default function Dashboard() {
+  const [activeUserId] = useState(() => getActiveUserId());
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let stop = false;
     const load = async () => {
+      if (!activeUserId) {
+        if (!stop) {
+          setSummary(null);
+          setError(null);
+        }
+        return;
+      }
+
       try {
-        const data = await fetchSummary(getCurrentUserId(), 7);
+        const data = await fetchSummary(activeUserId, 7);
         if (!stop) {
           setSummary(data);
           setError(null);
@@ -43,7 +53,7 @@ export default function Dashboard() {
     load();
     const t = setInterval(load, 5000);
     return () => { stop = true; clearInterval(t); };
-  }, []);
+  }, [activeUserId]);
 
   const totalSec = summary?.totalSeconds ?? 0;
   const score = summary?.awarenessScore ?? 100;
@@ -72,13 +82,23 @@ export default function Dashboard() {
         <p className="page-sub">Dữ liệu trực tiếp từ Chrome extension. Cập nhật mỗi 5 giây.</p>
       </header>
 
+      {!activeUserId && (
+        <div className="card auth-required-card">
+          <h2 className="card-title">Bạn cần đăng nhập để xem dashboard</h2>
+          <p className="card-sub">
+            Dashboard chỉ hiển thị dữ liệu của tài khoản hiện tại. Đăng nhập trên web hoặc mở dashboard từ extension sau khi đã đăng nhập.
+          </p>
+          <Link to="/auth" className="btn btn-primary">Đăng nhập / Đăng ký</Link>
+        </div>
+      )}
+
       {error && (
         <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>
           <strong style={{ color: 'var(--bad)' }}>Lưu ý:</strong> {error}
         </div>
       )}
 
-      <section className="grid grid-4" style={{ marginBottom: 18 }}>
+      {activeUserId && <section className="grid grid-4" style={{ marginBottom: 18 }}>
         <div className="stat">
           <span className="stat-label">Tổng thời gian</span>
           <span className="stat-value">{formatMinutes(totalSec)}</span>
@@ -103,9 +123,9 @@ export default function Dashboard() {
           <span className="stat-value">{formatMinutes(Math.round(totalSec / Math.max(daily.length, 1)))}</span>
           <span className="stat-meta muted">{daily.length || 7} ngày gần đây</span>
         </div>
-      </section>
+      </section>}
 
-      <section className="grid grid-dashboard">
+      {activeUserId && <section className="grid grid-dashboard">
         <div className="card">
           <h2 className="card-title">Phân tích theo ngày</h2>
           <p className="card-sub">Số phút theo từng app, 7 ngày gần đây</p>
@@ -171,9 +191,9 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="card" style={{ marginTop: 18 }}>
+      {activeUserId && <section className="card" style={{ marginTop: 18 }}>
         <h2 className="card-title">Tổng theo từng app</h2>
         <p className="card-sub">Bấm sang trang Phân tích để xem xu hướng</p>
         {SITES.map(s => {
@@ -194,7 +214,7 @@ export default function Dashboard() {
             </div>
           );
         })}
-      </section>
+      </section>}
     </>
   );
 }

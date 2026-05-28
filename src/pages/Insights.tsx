@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { fetchSummary, formatMinutes, Summary, getCurrentUserId } from '../lib/api';
+import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
 
 export default function Insights() {
+  const [activeUserId] = useState(() => getActiveUserId());
   const [summary, setSummary] = useState<Summary | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSummary(getCurrentUserId(), 14)
+    if (!activeUserId) return;
+    fetchSummary(activeUserId, 14)
       .then(setSummary)
       .catch(() => setErr('Không kết nối được tới API.'));
-  }, []);
+  }, [activeUserId]);
 
   const trend = (summary?.daily ?? []).map(d => ({
     day: d.day.slice(5),
@@ -29,7 +32,15 @@ export default function Insights() {
 
       {err && <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>{err}</div>}
 
-      <section className="grid grid-2">
+      {!activeUserId && (
+        <div className="card auth-required-card">
+          <h2 className="card-title">Bạn cần đăng nhập để xem phân tích</h2>
+          <p className="card-sub">Phân tích chỉ hiển thị dữ liệu của tài khoản hiện tại.</p>
+          <Link to="/auth" className="btn btn-primary">Đăng nhập / Đăng ký</Link>
+        </div>
+      )}
+
+      {activeUserId && <section className="grid grid-2">
         <div className="card">
           <h2 className="card-title">Xu hướng 14 ngày</h2>
           <p className="card-sub">Tổng số phút mạng xã hội mỗi ngày</p>
@@ -66,9 +77,9 @@ export default function Insights() {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="card" style={{ marginTop: 18 }}>
+      {activeUserId && <section className="card" style={{ marginTop: 18 }}>
         <h2 className="card-title">Gợi ý cho bạn</h2>
         <p className="card-sub">Tạo từ dữ liệu sử dụng 14 ngày gần nhất</p>
         <div className="grid grid-2">
@@ -79,7 +90,7 @@ export default function Insights() {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
     </>
   );
 }

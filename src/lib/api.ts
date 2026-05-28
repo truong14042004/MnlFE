@@ -50,6 +50,10 @@ export function getCurrentUserId(): string {
   const qUserId = query.get('userId');
   if (qUserId) {
     localStorage.setItem('userId', qUserId);
+    const qUsername = query.get('username');
+    const qDisplayName = query.get('displayName');
+    if (qUsername) localStorage.setItem('username', qUsername);
+    if (qDisplayName) localStorage.setItem('displayName', qDisplayName);
     try {
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);
@@ -57,6 +61,29 @@ export function getCurrentUserId(): string {
     return qUserId;
   }
   return localStorage.getItem('userId') || 'anon';
+}
+
+export function getActiveUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  const query = new URLSearchParams(window.location.search);
+  const qUserId = query.get('userId');
+  if (qUserId && qUserId !== 'anon') {
+    localStorage.setItem('userId', qUserId);
+    const qUsername = query.get('username');
+    const qDisplayName = query.get('displayName');
+    if (qUsername) localStorage.setItem('username', qUsername);
+    if (qDisplayName) localStorage.setItem('displayName', qDisplayName);
+    try {
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+      window.dispatchEvent(new Event('detox-auth-changed'));
+    } catch (_) {}
+    return qUserId;
+  }
+
+  const storedUserId = localStorage.getItem('userId');
+  if (!storedUserId || storedUserId === 'anon') return null;
+  return storedUserId;
 }
 
 export interface SiteTotal {
