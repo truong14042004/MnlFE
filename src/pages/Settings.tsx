@@ -2,7 +2,14 @@ import { useState } from 'react';
 
 export default function Settings() {
   const [saved, setSaved] = useState(false);
-  const [limits, setLimits] = useState({ YouTube: '', Facebook: '', TikTok: '' });
+  const [limits, setLimits] = useState(() => {
+    const savedLimits = localStorage.getItem('detox_limits');
+    try {
+      return savedLimits ? JSON.parse(savedLimits) : { YouTube: '', Facebook: '', TikTok: '' };
+    } catch (_) {
+      return { YouTube: '', Facebook: '', TikTok: '' };
+    }
+  });
 
   const onSave = (e: React.FormEvent) => {
     e.preventDefault();

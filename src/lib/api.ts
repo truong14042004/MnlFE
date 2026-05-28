@@ -67,7 +67,7 @@ export function getActiveUserId(): string | null {
   if (typeof window === 'undefined') return null;
   const query = new URLSearchParams(window.location.search);
   const qUserId = query.get('userId');
-  if (qUserId && qUserId !== 'anon') {
+  if (qUserId) {
     localStorage.setItem('userId', qUserId);
     const qUsername = query.get('username');
     const qDisplayName = query.get('displayName');
@@ -82,7 +82,7 @@ export function getActiveUserId(): string | null {
   }
 
   const storedUserId = localStorage.getItem('userId');
-  if (!storedUserId || storedUserId === 'anon') return null;
+  if (!storedUserId) return null;
   return storedUserId;
 }
 

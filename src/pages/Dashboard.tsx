@@ -98,6 +98,14 @@ export default function Dashboard() {
         </div>
       )}
 
+      {activeUserId === 'anon' && (
+        <div className="card" style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.03)', marginBottom: 18 }}>
+          <span style={{ fontSize: 13, display: 'block', lineHeight: 1.5 }}>
+            🚀 <strong style={{ color: 'var(--accent)' }}>Chế độ Ẩn danh (Guest Mode):</strong> Bạn đang xem dữ liệu theo dõi cục bộ. Hãy <Link to="/auth" style={{ color: 'var(--accent-2)', textDecoration: 'underline', fontWeight: 600 }}>Đăng ký tài khoản</Link> để đồng bộ dữ liệu trên nhiều thiết bị và lưu trữ vĩnh viễn!
+          </span>
+        </div>
+      )}
+
       {activeUserId && <section className="grid grid-4" style={{ marginBottom: 18 }}>
         <div className="stat">
           <span className="stat-label">Tổng thời gian</span>
@@ -166,7 +174,7 @@ export default function Dashboard() {
           </div>
 
           <div style={{ marginTop: 22 }}>
-            <h3 className="card-title" style={{ fontSize: 14 }}>Phân bổ hôm nay</h3>
+            <h3 className="card-title" style={{ fontSize: 14 }}>Phân bổ 7 ngày qua</h3>
             <div style={{ width: '100%', height: 200 }}>
               <ResponsiveContainer>
                 <PieChart>

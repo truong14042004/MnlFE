@@ -32,6 +32,14 @@ export default function Insights() {
 
       {err && <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>{err}</div>}
 
+      {activeUserId === 'anon' && (
+        <div className="card" style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.03)', marginBottom: 18 }}>
+          <span style={{ fontSize: 13, display: 'block', lineHeight: 1.5 }}>
+            🚀 <strong style={{ color: 'var(--accent)' }}>Chế độ Ẩn danh (Guest Mode):</strong> Bạn đang xem dữ liệu theo dõi cục bộ. Hãy <Link to="/auth" style={{ color: 'var(--accent-2)', textDecoration: 'underline', fontWeight: 600 }}>Đăng ký tài khoản</Link> để đồng bộ dữ liệu trên nhiều thiết bị và lưu trữ vĩnh viễn!
+          </span>
+        </div>
+      )}
+
       {!activeUserId && (
         <div className="card auth-required-card">
           <h2 className="card-title">Bạn cần đăng nhập để xem phân tích</h2>
@@ -83,7 +91,9 @@ export default function Insights() {
         <h2 className="card-title">Gợi ý cho bạn</h2>
         <p className="card-sub">Tạo từ dữ liệu sử dụng 14 ngày gần nhất</p>
         <div className="grid grid-2">
-          {(summary?.recommendations ?? ['Đặt giới hạn cho từng app để bắt đầu hành trình detox.']).map((tip, i) => (
+          {(summary?.recommendations && summary.recommendations.length > 0
+            ? summary.recommendations
+            : ['Chào mừng bạn! Hãy đặt giới hạn mỗi ngày cho từng app để bắt đầu hành trình detox.']).map((tip, i) => (
             <div className="tip" key={i}>
               <div className="tip-icon" aria-hidden>{['💡','🌙','📅','🎯','🌿'][i % 5]}</div>
               <div className="tip-text">{tip}</div>

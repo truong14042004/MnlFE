@@ -111,10 +111,6 @@ export default function Auth() {
             Đăng nhập trên web để dashboard đọc cùng userId với extension. Sau khi vào tài khoản,
             dữ liệu YouTube, Facebook và TikTok được đồng bộ từ extension sẽ hiển thị tự động.
           </p>
-          <div className="auth-proof">
-            <span>API Railway</span>
-            <strong>Đang dùng dữ liệu thật</strong>
-          </div>
         </div>
 
         <form className="card auth-form" onSubmit={onSubmit}>
@@ -208,7 +204,19 @@ export default function Auth() {
             </button>
           </div>
 
-          <Link className="auth-secondary-link" to="/dashboard">Xem dashboard ẩn danh</Link>
+          <button
+            type="button"
+            className="auth-secondary-link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'block', width: '100%', textAlign: 'center' }}
+            onClick={() => {
+              localStorage.setItem('userId', 'anon');
+              localStorage.setItem('displayName', 'Ẩn danh');
+              window.dispatchEvent(new Event('detox-auth-changed'));
+              navigate('/dashboard');
+            }}
+          >
+            Xem dashboard ẩn danh
+          </button>
         </form>
       </section>
     </div>
