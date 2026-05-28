@@ -555,6 +555,25 @@ button { font-family: inherit; }
   text-align: center;
   font-size: 13px;
 }
+.account-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.account-summary-name {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
 
 @media (max-width: 900px) {
   .auth-page { min-height: auto; }

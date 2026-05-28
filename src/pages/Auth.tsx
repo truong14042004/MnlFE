@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, register, saveAuthUser } from '../lib/api';
+import { clearAuthUser, getStoredUser, login, register, saveAuthUser } from '../lib/api';
 
 type Mode = 'login' | 'register';
 
@@ -18,6 +18,7 @@ export default function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(getStoredUser());
 
   const isRegister = mode === 'register';
 
@@ -52,6 +53,7 @@ export default function Auth() {
       const payload = { username: cleanUsername, password, fullName: cleanFullName };
       const user = isRegister ? await register(payload) : await login(payload);
       saveAuthUser(user);
+      setCurrentUser({ userId: user.userId, username: user.username, displayName: user.fullName || user.username });
       setSuccess(user.message || 'Đăng nhập thành công.');
       window.dispatchEvent(new Event('detox-auth-changed'));
       navigate('/dashboard', { replace: true });
@@ -61,6 +63,43 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const logout = () => {
+    clearAuthUser();
+    setCurrentUser(null);
+    window.dispatchEvent(new Event('detox-auth-changed'));
+  };
+
+  if (currentUser) {
+    return (
+      <div className="auth-page">
+        <section className="auth-panel">
+          <div className="auth-copy">
+            <div className="page-eyebrow">Tài khoản web</div>
+            <h1 className="page-title">Bạn đang đăng nhập.</h1>
+            <p className="page-sub">
+              Dashboard sẽ dùng dữ liệu của tài khoản này. Nếu extension cũng đăng nhập cùng tài khoản,
+              dữ liệu tracking sẽ đồng bộ về đúng dashboard này.
+            </p>
+          </div>
+
+          <div className="card auth-form account-summary-card">
+            <span className="account-label">Tài khoản hiện tại</span>
+            <h2 className="account-summary-name">{currentUser.displayName}</h2>
+            {currentUser.username && <p className="card-sub">@{currentUser.username}</p>}
+            <div className="auth-actions">
+              <button type="button" className="btn btn-primary" onClick={() => navigate('/dashboard')}>
+                Vào Dashboard
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={logout}>
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">
