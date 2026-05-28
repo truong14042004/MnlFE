@@ -8,6 +8,42 @@ export const api = axios.create({
   timeout: 8000,
 });
 
+export interface AuthUser {
+  userId: string;
+  username: string;
+  fullName: string;
+  message?: string;
+}
+
+export interface AuthPayload {
+  username: string;
+  password: string;
+  fullName?: string;
+}
+
+export function saveAuthUser(user: AuthUser) {
+  localStorage.setItem('userId', user.userId);
+  localStorage.setItem('username', user.username);
+  localStorage.setItem('displayName', user.fullName || user.username);
+}
+
+export function getStoredUser() {
+  if (typeof window === 'undefined') return null;
+  const userId = localStorage.getItem('userId');
+  if (!userId || userId === 'anon') return null;
+  return {
+    userId,
+    username: localStorage.getItem('username') || '',
+    displayName: localStorage.getItem('displayName') || localStorage.getItem('username') || 'User',
+  };
+}
+
+export function clearAuthUser() {
+  localStorage.removeItem('userId');
+  localStorage.removeItem('username');
+  localStorage.removeItem('displayName');
+}
+
 export function getCurrentUserId(): string {
   if (typeof window === 'undefined') return 'anon';
   const query = new URLSearchParams(window.location.search);
@@ -44,6 +80,16 @@ export interface Summary {
 
 export async function fetchSummary(userId = 'anon', days = 7): Promise<Summary> {
   const { data } = await api.get('/api/stats/summary', { params: { userId, days } });
+  return data;
+}
+
+export async function login(payload: AuthPayload): Promise<AuthUser> {
+  const { data } = await api.post('/api/auth/login', payload);
+  return data;
+}
+
+export async function register(payload: AuthPayload): Promise<AuthUser> {
+  const { data } = await api.post('/api/auth/register', payload);
   return data;
 }
 

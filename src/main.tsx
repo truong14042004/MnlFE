@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import Landing from './pages/Landing';
+import Auth from './pages/Auth';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route index element={<Landing />} />
+          <Route path="auth" element={<Auth />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="insights" element={<Insights />} />
           <Route path="settings" element={<Settings />} />

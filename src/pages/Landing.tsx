@@ -11,7 +11,8 @@ export default function Landing() {
           khi bạn vượt giới hạn mỗi ngày, và cho bạn thấy thói quen ẩn sau những lần lướt vô thức.
         </p>
         <div className="hero-cta">
-          <Link to="/dashboard" className="btn btn-primary">Xem dashboard trực tiếp →</Link>
+          <Link to="/auth" className="btn btn-primary">Đăng nhập / Đăng ký</Link>
+          <Link to="/dashboard" className="btn btn-ghost">Xem dashboard trực tiếp</Link>
           <Link to="/settings" className="btn btn-ghost">Đặt giới hạn của tôi</Link>
         </div>
       </section>
