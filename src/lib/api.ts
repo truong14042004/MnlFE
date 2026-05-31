@@ -59,26 +59,7 @@ export function clearAuthUser() {
   localStorage.removeItem('token');
 }
 
-export function getCurrentUserId(): string {
-  if (typeof window === 'undefined') return 'anon';
-  const query = new URLSearchParams(window.location.search);
-  const qUserId = query.get('userId');
-  if (qUserId) {
-    localStorage.setItem('userId', qUserId);
-    const qUsername = query.get('username');
-    const qDisplayName = query.get('displayName');
-    if (qUsername) localStorage.setItem('username', qUsername);
-    if (qDisplayName) localStorage.setItem('displayName', qDisplayName);
-    const qToken = query.get('token');
-    if (qToken) localStorage.setItem('token', qToken);
-    try {
-      const cleanUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, document.title, cleanUrl);
-    } catch (_) {}
-    return qUserId;
-  }
-  return localStorage.getItem('userId') || 'anon';
-}
+
 
 export function getActiveUserId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -124,8 +105,33 @@ export interface Summary {
   recommendations: string[];
 }
 
-export async function fetchSummary(userId = 'anon', days = 7): Promise<Summary> {
+export async function fetchSummary(userId?: string, days = 7): Promise<Summary> {
   const { data } = await api.get('/api/stats/summary', { params: { userId, days } });
+  return data;
+}
+
+export interface ChallengeConfig {
+  id: string;
+  metric: string;
+  target: number;
+}
+
+export interface UserSettings {
+  youTubeLimit: number;
+  facebookLimit: number;
+  tikTokLimit: number;
+  streakCount: number;
+  lastCompletedDay: string;
+  challenges: ChallengeConfig[];
+}
+
+export async function fetchSettings(): Promise<UserSettings> {
+  const { data } = await api.get('/api/settings');
+  return data;
+}
+
+export async function saveSettings(settings: UserSettings): Promise<UserSettings> {
+  const { data } = await api.put('/api/settings', settings);
   return data;
 }
 

@@ -4,7 +4,6 @@ import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
-import AnonBanner from '../components/AnonBanner';
 import { usePageMeta } from '../lib/usePageMeta';
 
 export default function Insights() {
@@ -35,7 +34,7 @@ export default function Insights() {
 
       {err && <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>{err}</div>}
 
-      {activeUserId === 'anon' && <AnonBanner />}
+
 
       {!activeUserId && (
         <div className="card auth-required-card">

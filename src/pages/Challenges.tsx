@@ -1,20 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
-import AnonBanner from '../components/AnonBanner';
+import { useEffect, useRef, useState } from 'react';
+import { fetchSummary, formatMinutes, Summary, fetchSettings, saveSettings, UserSettings, ChallengeConfig } from '../lib/api';
 import { usePageMeta } from '../lib/usePageMeta';
 
-const STREAK_KEY = 'detox_challenge_streak';
-const STREAK_DATE_KEY = 'detox_challenge_last';
-const CONFIG_KEY = 'detox_challenge_configs';
-
 type Metric = 'total' | 'YouTube' | 'Facebook' | 'TikTok' | 'score';
-
-interface ChallengeConfig {
-  id: string;
-  metric: Metric;
-  target: number;
-}
 
 interface MetricMeta {
   icon: string;
@@ -31,7 +19,11 @@ const METRICS: Record<Metric, MetricMeta> = {
   score: { icon: '✨', label: 'Điểm tỉnh thức', unit: 'điểm', lowerIsBetter: false },
 };
 
-const DEFAULT_CONFIGS: ChallengeConfig[] = [
+function metricMeta(metric: string): MetricMeta {
+  return METRICS[metric as Metric] ?? METRICS.total;
+}
+
+const DEFAULT_CHALLENGES: ChallengeConfig[] = [
   { id: 'seed-total', metric: 'total', target: 60 },
   { id: 'seed-tiktok', metric: 'TikTok', target: 20 },
   { id: 'seed-facebook', metric: 'Facebook', target: 0 },
@@ -56,20 +48,8 @@ function yesterdayKey() {
   return d.toISOString().slice(0, 10);
 }
 
-function loadConfigs(): ChallengeConfig[] {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY);
-    if (!raw) return DEFAULT_CONFIGS;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return DEFAULT_CONFIGS;
-    return parsed.filter((c) => c && METRICS[c.metric as Metric]);
-  } catch (_) {
-    return DEFAULT_CONFIGS;
-  }
-}
-
 function challengeTitle(c: ChallengeConfig) {
-  const m = METRICS[c.metric];
+  const m = metricMeta(c.metric);
   const op = m.lowerIsBetter ? 'dưới' : 'từ';
   const val = m.unit === 'phút' ? formatMinutes(c.target * 60) : `${c.target} ${m.unit}`;
   if (c.metric === 'total') return `Tổng thời gian ${op} ${val}`;
@@ -77,33 +57,48 @@ function challengeTitle(c: ChallengeConfig) {
 }
 
 export default function Challenges() {
-  const [activeUserId] = useState(() => getActiveUserId());
+  const [settings, setSettings] = useState<UserSettings | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [configs, setConfigs] = useState<ChallengeConfig[]>(() => loadConfigs());
-  const [streak, setStreak] = useState<number>(() => {
-    const s = Number(localStorage.getItem(STREAK_KEY) || '0');
-    return Number.isFinite(s) ? s : 0;
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Add-form state
   const [newMetric, setNewMetric] = useState<Metric>('total');
   const [newTarget, setNewTarget] = useState<string>('30');
 
-  usePageMeta('Thử thách · Digital Detox', 'Tự tạo thử thách detox của riêng bạn, theo dõi tiến độ và giữ chuỗi streak mỗi ngày.');
+  const saveTimer = useRef<number | null>(null);
+  const latest = useRef<UserSettings | null>(null);
+
+  usePageMeta('Thử thách · Digital Detox', 'Tự tạo thử thách detox của riêng bạn, theo dõi tiến độ và giữ chuỗi streak — lưu vào tài khoản, đồng bộ đa thiết bị.');
 
   useEffect(() => {
-    if (!activeUserId) return;
-    fetchSummary(activeUserId, 7).then(setSummary).catch(() => {});
-  }, [activeUserId]);
+    Promise.all([fetchSettings(), fetchSummary(undefined, 7)])
+      .then(([s, sum]) => {
+        setSettings({ ...s, challenges: s.challenges || [] });
+        setSummary(sum);
+      })
+      .catch(() => setError('Không tải được dữ liệu. Hãy thử đăng nhập lại.'))
+      .finally(() => setLoading(false));
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, []);
 
-  // Persist configs whenever they change.
-  useEffect(() => {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(configs));
-  }, [configs]);
+  // Debounced persistence so rapid target edits don't spam the API.
+  const persist = (next: UserSettings) => {
+    setSettings(next);
+    latest.current = next;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      if (latest.current) saveSettings(latest.current).catch(() => {});
+    }, 600);
+  };
 
-  // Today's slice is the last entry of the rolling daily array.
+  const configs = settings?.challenges ?? [];
+  const streak = settings?.streakCount ?? 0;
+
   const today = summary?.daily?.[summary.daily.length - 1];
-  const currentFor = (metric: Metric): number => {
+  const currentFor = (metric: string): number => {
     switch (metric) {
       case 'total': return Math.round((today?.totalSeconds ?? 0) / 60);
       case 'score': return summary?.awarenessScore ?? 0;
@@ -113,7 +108,7 @@ export default function Challenges() {
 
   const isDone = (c: ChallengeConfig) => {
     const cur = currentFor(c.metric);
-    return METRICS[c.metric].lowerIsBetter ? cur <= c.target : cur >= c.target;
+    return metricMeta(c.metric).lowerIsBetter ? cur <= c.target : cur >= c.target;
   };
 
   const completedCount = configs.filter(isDone).length;
@@ -121,36 +116,39 @@ export default function Challenges() {
 
   // Update streak once per day when every challenge is complete.
   useEffect(() => {
-    if (!allDone) return;
-    const last = localStorage.getItem(STREAK_DATE_KEY);
-    const today = todayKey();
-    if (last === today) return;
-    const prev = Number(localStorage.getItem(STREAK_KEY) || '0');
-    const next = last === yesterdayKey() ? prev + 1 : 1;
-    localStorage.setItem(STREAK_KEY, String(next));
-    localStorage.setItem(STREAK_DATE_KEY, today);
-    setStreak(next);
-  }, [allDone]);
+    if (!settings || !summary) return;
+    if (configs.length === 0 || !allDone) return;
+    const day = todayKey();
+    if (settings.lastCompletedDay === day) return;
+    const next = settings.lastCompletedDay === yesterdayKey() ? settings.streakCount + 1 : 1;
+    persist({ ...settings, streakCount: next, lastCompletedDay: day });
+  }, [settings, summary, allDone]);
 
   const addChallenge = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!settings) return;
     const t = parseInt(newTarget, 10);
     const target = isNaN(t) || t < 0 ? 0 : t;
-    setConfigs((prev) => [...prev, { id: newId(), metric: newMetric, target }]);
+    persist({ ...settings, challenges: [...settings.challenges, { id: newId(), metric: newMetric, target }] });
     setNewTarget('30');
   };
 
   const updateTarget = (id: string, value: string) => {
+    if (!settings) return;
     const t = parseInt(value, 10);
     const target = isNaN(t) || t < 0 ? 0 : t;
-    setConfigs((prev) => prev.map((c) => (c.id === id ? { ...c, target } : c)));
+    persist({ ...settings, challenges: settings.challenges.map((c) => (c.id === id ? { ...c, target } : c)) });
   };
 
   const removeChallenge = (id: string) => {
-    setConfigs((prev) => prev.filter((c) => c.id !== id));
+    if (!settings) return;
+    persist({ ...settings, challenges: settings.challenges.filter((c) => c.id !== id) });
   };
 
-  const resetDefaults = () => setConfigs(DEFAULT_CONFIGS.map((c) => ({ ...c, id: newId() })));
+  const resetDefaults = () => {
+    if (!settings) return;
+    persist({ ...settings, challenges: DEFAULT_CHALLENGES.map((c) => ({ ...c, id: newId() })) });
+  };
 
   return (
     <>
@@ -160,17 +158,24 @@ export default function Challenges() {
         <p className="page-sub">Tự tạo thử thách của riêng bạn, hoàn thành mỗi ngày và giữ chuỗi streak.</p>
       </header>
 
-      {activeUserId === 'anon' && <AnonBanner />}
-
-      {!activeUserId && (
-        <div className="card auth-required-card">
-          <h2 className="card-title">Bạn cần đăng nhập để tham gia thử thách</h2>
-          <p className="card-sub">Thử thách được chấm dựa trên dữ liệu theo dõi của tài khoản hiện tại.</p>
-          <Link to="/auth" className="btn btn-primary">Đăng nhập / Đăng ký</Link>
+      {error && (
+        <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>
+          <strong style={{ color: 'var(--bad)' }}>Lưu ý:</strong> {error}
         </div>
       )}
 
-      {activeUserId && (
+      {loading && (
+        <section className="grid grid-2" style={{ marginBottom: 18 }} aria-hidden>
+          {[0, 1].map((i) => (
+            <div className="stat" key={i}>
+              <div className="skeleton" style={{ height: 12, width: '60%' }} />
+              <div className="skeleton" style={{ height: 30, width: '80%', marginTop: 10 }} />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {!loading && settings && (
         <>
           <section className="grid grid-2" style={{ marginBottom: 18 }}>
             <div className="stat">
@@ -192,7 +197,7 @@ export default function Challenges() {
           {/* Add new challenge */}
           <form className="card" onSubmit={addChallenge} style={{ marginBottom: 18 }}>
             <h2 className="card-title">Tạo thử thách mới</h2>
-            <p className="card-sub">Chọn mục tiêu và đặt ngưỡng của riêng bạn. Mọi thay đổi được lưu tự động.</p>
+            <p className="card-sub">Chọn mục tiêu và đặt ngưỡng của riêng bạn. Mọi thay đổi được lưu vào tài khoản.</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div className="field" style={{ marginBottom: 0, flex: '1 1 200px' }}>
                 <label className="field-label" htmlFor="ch-metric">Mục tiêu</label>
@@ -236,7 +241,7 @@ export default function Challenges() {
           {configs.length > 0 && (
             <section className="grid grid-2">
               {configs.map((c) => {
-                const m = METRICS[c.metric];
+                const m = metricMeta(c.metric);
                 const cur = currentFor(c.metric);
                 const done = isDone(c);
                 const pct = Math.min(100, Math.round((cur / Math.max(c.target, 1)) * 100));

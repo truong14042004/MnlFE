@@ -5,7 +5,6 @@ import {
   BarChart, Bar, CartesianGrid, XAxis, YAxis, Legend,
 } from 'recharts';
 import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
-import AnonBanner from '../components/AnonBanner';
 import { usePageMeta } from '../lib/usePageMeta';
 
 const SITES = ['YouTube', 'Facebook', 'TikTok'] as const;
@@ -113,7 +112,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeUserId === 'anon' && <AnonBanner />}
+
 
       {activeUserId && loading && (
         <section className="grid grid-4" style={{ marginBottom: 18 }} aria-hidden>
