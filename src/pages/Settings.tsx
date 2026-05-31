@@ -30,8 +30,8 @@ export default function Settings() {
         <div className="page-eyebrow">Cài đặt</div>
         <h1 className="page-title">Đặt giới hạn mỗi ngày</h1>
         <p className="page-sub">
-          Chrome extension là nơi áp dụng giới hạn thật. Giá trị ở đây được lưu cục bộ
-          để bạn tham khảo &mdash; mở popup extension để thực thi.
+          Đặt giới hạn tại đây, chúng sẽ tự đồng bộ sang Chrome extension để thực thi.
+          Bạn cũng có thể chỉnh trực tiếp trong popup của extension.
         </p>
       </header>
 
@@ -64,8 +64,9 @@ export default function Settings() {
         <h2 className="card-title">Cách theo dõi hoạt động</h2>
         <p style={{ color: 'var(--text-soft)', lineHeight: 1.6, fontSize: 14 }}>
           Extension chỉ theo dõi tab đang hoạt động. Khi tab đó là YouTube, Facebook hoặc
-          TikTok, thời gian được đếm ngầm. Dữ liệu được đồng bộ theo lô lên API cục bộ
-          mỗi 30 giây &mdash; không có gì rời khỏi máy bạn.
+          TikTok, thời gian được đếm ngầm và đồng bộ theo lô mỗi 30 giây lên tài khoản của bạn,
+          để bạn xem được số liệu trên web ở bất kỳ thiết bị nào. Chúng tôi chỉ ghi nhận thời
+          lượng của 3 app này, không thu thập nội dung bạn xem.
         </p>
       </div>
     </>
