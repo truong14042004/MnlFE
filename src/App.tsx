@@ -5,6 +5,7 @@ import { clearAuthUser, getStoredUser } from './lib/api';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '▣' },
   { to: '/insights', label: 'Phân tích', icon: '◇' },
+  { to: '/challenges', label: 'Thử thách', icon: '◈' },
   { to: '/settings', label: 'Cài đặt', icon: '⚙' },
 ];
 
@@ -17,25 +18,19 @@ export default function App() {
     const syncUser = () => setUser(getStoredUser());
     window.addEventListener('storage', syncUser);
     window.addEventListener('detox-auth-changed', syncUser);
+    window.addEventListener('focus', syncUser);
+    document.addEventListener('visibilitychange', syncUser);
     return () => {
       window.removeEventListener('storage', syncUser);
       window.removeEventListener('detox-auth-changed', syncUser);
+      window.removeEventListener('focus', syncUser);
+      document.removeEventListener('visibilitychange', syncUser);
     };
   }, []);
 
   useEffect(() => {
     setUser(getStoredUser());
   }, [location.pathname, location.search]);
-
-  useEffect(() => {
-    const syncUser = () => setUser(getStoredUser());
-    window.addEventListener('focus', syncUser);
-    document.addEventListener('visibilitychange', syncUser);
-    return () => {
-      window.removeEventListener('focus', syncUser);
-      document.removeEventListener('visibilitychange', syncUser);
-    };
-  }, []);
 
   const logout = () => {
     clearAuthUser();

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { clearAuthUser, getStoredUser, login, register, saveAuthUser } from '../lib/api';
+import { usePageMeta } from '../lib/usePageMeta';
 
 type Mode = 'login' | 'register';
 
@@ -11,6 +12,7 @@ function getErrorMessage(error: any) {
 export default function Auth() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('login');
+  usePageMeta('Đăng nhập · Digital Detox', 'Đăng nhập hoặc tạo tài khoản Digital Detox để đồng bộ dữ liệu giữa web và extension.');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

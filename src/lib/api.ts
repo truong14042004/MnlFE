@@ -8,10 +8,23 @@ export const api = axios.create({
   timeout: 8000,
 });
 
+// Attach JWT (if present) so the backend can resolve the user from the token.
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = config.headers || {};
+      (config.headers as any).Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export interface AuthUser {
   userId: string;
   username: string;
   fullName: string;
+  token?: string;
   message?: string;
 }
 
@@ -25,6 +38,7 @@ export function saveAuthUser(user: AuthUser) {
   localStorage.setItem('userId', user.userId);
   localStorage.setItem('username', user.username);
   localStorage.setItem('displayName', user.fullName || user.username);
+  if (user.token) localStorage.setItem('token', user.token);
 }
 
 export function getStoredUser() {
@@ -42,6 +56,7 @@ export function clearAuthUser() {
   localStorage.removeItem('userId');
   localStorage.removeItem('username');
   localStorage.removeItem('displayName');
+  localStorage.removeItem('token');
 }
 
 export function getCurrentUserId(): string {
@@ -54,6 +69,8 @@ export function getCurrentUserId(): string {
     const qDisplayName = query.get('displayName');
     if (qUsername) localStorage.setItem('username', qUsername);
     if (qDisplayName) localStorage.setItem('displayName', qDisplayName);
+    const qToken = query.get('token');
+    if (qToken) localStorage.setItem('token', qToken);
     try {
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);
@@ -73,6 +90,8 @@ export function getActiveUserId(): string | null {
     const qDisplayName = query.get('displayName');
     if (qUsername) localStorage.setItem('username', qUsername);
     if (qDisplayName) localStorage.setItem('displayName', qDisplayName);
+    const qToken = query.get('token');
+    if (qToken) localStorage.setItem('token', qToken);
     try {
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);

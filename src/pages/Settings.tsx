@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function Settings() {
   const [saved, setSaved] = useState(false);
+  usePageMeta('Cài đặt · Digital Detox', 'Đặt giới hạn thời gian mỗi ngày cho YouTube, Facebook và TikTok. Giới hạn được đồng bộ sang extension.');
   const [limits, setLimits] = useState(() => {
     const savedLimits = localStorage.getItem('detox_limits');
     try {
@@ -13,8 +15,11 @@ export default function Settings() {
 
   const onSave = (e: React.FormEvent) => {
     e.preventDefault();
-    // Lưu trên localStorage chỉ để tham khảo; extension là nguồn dữ liệu chính.
     localStorage.setItem('detox_limits', JSON.stringify(limits));
+    // Push limits to the extension (if installed) so they actually take effect.
+    try {
+      window.dispatchEvent(new CustomEvent('detox-limits-changed', { detail: limits }));
+    } catch (_) {}
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -51,7 +56,7 @@ export default function Settings() {
 
         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
           <button type="submit" className="btn btn-primary">Lưu cài đặt</button>
-          {saved && <span style={{ color: 'var(--good)', fontSize: 13, alignSelf: 'center' }}>Đã lưu cục bộ ✓</span>}
+          {saved && <span style={{ color: 'var(--good)', fontSize: 13, alignSelf: 'center' }}>Đã lưu &amp; đồng bộ ✓</span>}
         </div>
       </form>
 

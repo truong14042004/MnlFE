@@ -5,6 +5,8 @@ import {
   BarChart, Bar, CartesianGrid, XAxis, YAxis, Legend,
 } from 'recharts';
 import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
+import AnonBanner from '../components/AnonBanner';
+import { usePageMeta } from '../lib/usePageMeta';
 
 const SITES = ['YouTube', 'Facebook', 'TikTok'] as const;
 const SITE_COLORS: Record<string, string> = {
@@ -28,6 +30,8 @@ export default function Dashboard() {
   const [activeUserId] = useState(() => getActiveUserId());
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  usePageMeta('Dashboard · Digital Detox', 'Theo dõi thời gian dùng mạng xã hội 7 ngày qua và điểm tỉnh thức của bạn.');
 
   useEffect(() => {
     let stop = false;
@@ -36,10 +40,12 @@ export default function Dashboard() {
         if (!stop) {
           setSummary(null);
           setError(null);
+          setLoading(false);
         }
         return;
       }
-
+      // Skip network work while the tab is hidden to avoid wasted polling.
+      if (document.hidden) return;
       try {
         const data = await fetchSummary(activeUserId, 7);
         if (!stop) {
@@ -48,17 +54,26 @@ export default function Dashboard() {
         }
       } catch (e: any) {
         if (!stop) setError('Không kết nối được tới API. Hãy chắc chắn backend đang chạy ở cổng 5050.');
+      } finally {
+        if (!stop) setLoading(false);
       }
     };
     load();
     const t = setInterval(load, 5000);
-    return () => { stop = true; clearInterval(t); };
+    const onVisible = () => { if (!document.hidden) load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stop = true;
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [activeUserId]);
 
   const totalSec = summary?.totalSeconds ?? 0;
-  const score = summary?.awarenessScore ?? 100;
+  const score = summary?.awarenessScore ?? 0;
   const byWebsite = summary?.byWebsite ?? [];
   const daily = summary?.daily ?? [];
+  const hasData = totalSec > 0;
 
   const pieData = SITES.map(s => {
     const found = byWebsite.find(b => b.website === s);
@@ -98,15 +113,32 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeUserId === 'anon' && (
-        <div className="card" style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.03)', marginBottom: 18 }}>
-          <span style={{ fontSize: 13, display: 'block', lineHeight: 1.5 }}>
-            🚀 <strong style={{ color: 'var(--accent)' }}>Chế độ Ẩn danh (Guest Mode):</strong> Bạn đang xem dữ liệu theo dõi cục bộ. Hãy <Link to="/auth" style={{ color: 'var(--accent-2)', textDecoration: 'underline', fontWeight: 600 }}>Đăng ký tài khoản</Link> để đồng bộ dữ liệu trên nhiều thiết bị và lưu trữ vĩnh viễn!
-          </span>
+      {activeUserId === 'anon' && <AnonBanner />}
+
+      {activeUserId && loading && (
+        <section className="grid grid-4" style={{ marginBottom: 18 }} aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <div className="stat" key={i}>
+              <div className="skeleton" style={{ height: 12, width: '60%' }} />
+              <div className="skeleton" style={{ height: 30, width: '80%', marginTop: 10 }} />
+              <div className="skeleton" style={{ height: 10, width: '50%', marginTop: 10 }} />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {activeUserId && !loading && !hasData && (
+        <div className="card center" style={{ padding: '48px 24px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🌱</div>
+          <h2 className="card-title">Chưa có dữ liệu theo dõi</h2>
+          <p className="card-sub" style={{ marginBottom: 0 }}>
+            Hãy cài Chrome extension và lướt YouTube, Facebook hoặc TikTok một chút.
+            Dữ liệu sẽ xuất hiện ở đây sau vài giây.
+          </p>
         </div>
       )}
 
-      {activeUserId && <section className="grid grid-4" style={{ marginBottom: 18 }}>
+      {activeUserId && !loading && hasData && <section className="grid grid-4" style={{ marginBottom: 18 }}>
         <div className="stat">
           <span className="stat-label">Tổng thời gian</span>
           <span className="stat-value">{formatMinutes(totalSec)}</span>
@@ -133,7 +165,7 @@ export default function Dashboard() {
         </div>
       </section>}
 
-      {activeUserId && <section className="grid grid-dashboard">
+      {activeUserId && !loading && hasData && <section className="grid grid-dashboard">
         <div className="card">
           <h2 className="card-title">Phân tích theo ngày</h2>
           <p className="card-sub">Số phút theo từng app, 7 ngày gần đây</p>
@@ -201,7 +233,7 @@ export default function Dashboard() {
         </div>
       </section>}
 
-      {activeUserId && <section className="card" style={{ marginTop: 18 }}>
+      {activeUserId && !loading && hasData && <section className="card" style={{ marginTop: 18 }}>
         <h2 className="card-title">Tổng theo từng app</h2>
         <p className="card-sub">Bấm sang trang Phân tích để xem xu hướng</p>
         {SITES.map(s => {

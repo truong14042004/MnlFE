@@ -4,11 +4,14 @@ import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { fetchSummary, formatMinutes, Summary, getActiveUserId } from '../lib/api';
+import AnonBanner from '../components/AnonBanner';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function Insights() {
   const [activeUserId] = useState(() => getActiveUserId());
   const [summary, setSummary] = useState<Summary | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  usePageMeta('Phân tích · Digital Detox', 'Xu hướng sử dụng mạng xã hội 14 ngày và gợi ý cá nhân hoá để detox.');
 
   useEffect(() => {
     if (!activeUserId) return;
@@ -32,13 +35,7 @@ export default function Insights() {
 
       {err && <div className="card" style={{ borderColor: 'rgba(239,68,68,0.35)', marginBottom: 18 }}>{err}</div>}
 
-      {activeUserId === 'anon' && (
-        <div className="card" style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.03)', marginBottom: 18 }}>
-          <span style={{ fontSize: 13, display: 'block', lineHeight: 1.5 }}>
-            🚀 <strong style={{ color: 'var(--accent)' }}>Chế độ Ẩn danh (Guest Mode):</strong> Bạn đang xem dữ liệu theo dõi cục bộ. Hãy <Link to="/auth" style={{ color: 'var(--accent-2)', textDecoration: 'underline', fontWeight: 600 }}>Đăng ký tài khoản</Link> để đồng bộ dữ liệu trên nhiều thiết bị và lưu trữ vĩnh viễn!
-          </span>
-        </div>
-      )}
+      {activeUserId === 'anon' && <AnonBanner />}
 
       {!activeUserId && (
         <div className="card auth-required-card">
